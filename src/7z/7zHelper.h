@@ -1,6 +1,7 @@
 /*
  * Gearsystem - Sega Master System / Game Gear Emulator
  * Copyright (C) 2013  Ignacio Sanchez
+ * Copyright (C) 2025  Neil Richardson
 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
