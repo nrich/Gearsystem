@@ -17,4 +17,3 @@ include ../desktop-shared/Makefile.install
 
 CC=x86_64-w64-mingw32-gcc
 CXX=x86_64-w64-mingw32-g++
-TARGET=$(TARGET_NAME).exe
