@@ -15,21 +15,6 @@
 
 #define kInputBufSize ((size_t)1 << 18)
 
-static ISzAlloc g_Alloc = {
-    SzAlloc,
-    SzFree
-};
-
-
-#ifdef _WIN32
-  #ifndef USE_WINDOWS_FILE
-    static UINT g_FileCodePage = CP_ACP;
-  #endif
-  #define MY_FILE_CODE_PAGE_PARAM ,g_FileCodePage
-#else
-  #define MY_FILE_CODE_PAGE_PARAM
-#endif
-
 std::string utf16_to_utf8(std::u16string const& s)
 {
     std::wstring_convert<std::codecvt_utf8_utf16<char16_t, 0x10ffff,
@@ -40,19 +25,10 @@ std::string utf16_to_utf8(std::u16string const& s)
     return utf8;
 }
 
-
-std::list<std::string> List7zFile(const std::string &filename)
+n7z::Archive::Archive(const std::string &filename)
 {
-    std::list<std::string> contents;
-
-    CFileInStream archiveStream;
-    CLookToRead2 lookStream;
-    CSzArEx db;
-    SRes res;
-    ISzAlloc allocImp;
-    ISzAlloc allocTempImp;
     uint16_t *temp = nullptr;
-    size_t tempSize = 0;
+    size_t temp_size = 0;
 
     allocImp.Alloc = SzAlloc;
     allocImp.Free = SzFree;
@@ -69,8 +45,8 @@ std::list<std::string> List7zFile(const std::string &filename)
 #endif
         if (wres != 0)
         {
-            Log("cannot open input file", wres);
-            return contents;
+            Log("cannot open input file (error %d)", wres);
+            throw std::runtime_error("Loading " + filename + " failed");
         }
     }
 
@@ -79,7 +55,7 @@ std::list<std::string> List7zFile(const std::string &filename)
     LookToRead2_CreateVTable(&lookStream, False);
     lookStream.buf = NULL;
 
-    res = SZ_OK;
+    SRes res = SZ_OK;
 
     {
         lookStream.buf = (Byte *)ISzAlloc_Alloc(&allocImp, kInputBufSize);
@@ -87,6 +63,7 @@ std::list<std::string> List7zFile(const std::string &filename)
         {
             res = SZ_ERROR_MEM;
             Log("Cannot allocate memory");
+            throw std::runtime_error("Cannot allocate memory");
         }
         else
         {
@@ -104,147 +81,83 @@ std::list<std::string> List7zFile(const std::string &filename)
     {
         res = SzArEx_Open(&db, &lookStream.vt, &allocImp, &allocTempImp);
     }
-
-    Log("Here %d", res);
-//    return contents;
+    else
+    {
+        Log("Cannot open archive (Error %d)", res);
+        throw std::runtime_error("Cannot open archive");
+    }
 
     if (res == SZ_OK)
     {
-        uint32_t i;
-        size_t listIt = 0;
-
-        for (i = 0; i < db.NumFiles; i++)
+        for (size_t i = 0; i < db.NumFiles; i++)
         {
-            size_t len;
-            int isDir = SzArEx_IsDir(&db, i);
-            len = SzArEx_GetFileNameUtf16(&db, i, NULL);
+            int is_dir = SzArEx_IsDir(&db, i);
 
-            if (len > tempSize)
+            if (is_dir)
+                continue;
+
+            size_t len = SzArEx_GetFileNameUtf16(&db, i, NULL);
+
+            if (len > temp_size)
             {
                 SzFree(NULL, temp);
-                tempSize = len;
+                temp_size = len;
 
-                temp = (uint16_t *)SzAlloc(NULL, tempSize * sizeof(uint16_t));
+                temp = (uint16_t *)SzAlloc(NULL, temp_size * sizeof(uint16_t));
                 if (!temp)
                 {
-                    Log("Could not SzAlloc buffer of %d uint16_ts", tempSize);
-                    return contents;
+                    Log("Could not SzAlloc buffer of %d uint16_ts", temp_size);
+                    throw std::runtime_error("Could not SzAlloc buffer");
                 }
 
                 SzArEx_GetFileNameUtf16(&db, i, temp);
 
-                uint64_t fileSize = SzArEx_GetFileSize(&db, i);
+                uint64_t file_size = SzArEx_GetFileSize(&db, i);
 
-                std::string filename = utf16_to_utf8(std::u16string((char16_t *)temp, len));
+                std::string path = utf16_to_utf8(std::u16string((char16_t *)temp, len));
 
-                contents.push_back(filename);
+                entries.push_back(n7z::FileEntry{path, file_size, i});
             }
         }
     }
 
-    SzArEx_Free(&db, &allocImp);
     SzFree(NULL, temp);
-
-    File_Close(&archiveStream.file);
-
-    return contents;
 }
 
-std::vector<uint8_t> ExtractFrom7zFile(const std::string &filename, int file_index)
+std::vector<uint8_t> n7z::Archive::extract(const size_t file_index)
 {
     std::vector<uint8_t> buffer;
 
-    CFileInStream archiveStream;
-    CLookToRead2 lookStream;
-    CSzArEx db;
-    SRes res;
-    ISzAlloc allocImp;
-    ISzAlloc allocTempImp;
-    uint16_t *temp = nullptr;
-    size_t tempSize = 0;
+    if (file_index > entries.size())
+        return buffer;
 
-    allocImp.Alloc = SzAlloc;
-    allocImp.Free = SzFree;
+    uint32_t block_index = 0xFFFFFFFF; /* it can have any value before first call (if out_buffer = 0) */
+    uint8_t *out_buffer = 0; /* it must be 0 before first call for each new archive. */
+    size_t out_buffer_size = 0;  /* it can have any value before first call (if out_buffer = 0) */
+    size_t offset = 0;
+    size_t out_size_processed = 0;
 
-    allocTempImp.Alloc = SzAllocTemp;
-    allocTempImp.Free = SzFreeTemp;
-
+    SRes res = SzArEx_Extract(&db, &lookStream.vt, file_index, &block_index, &out_buffer, &out_buffer_size, &offset, &out_size_processed, &allocImp, &allocTempImp);
+    if (res != SZ_OK)
     {
-        WRes wres =
-#ifdef UNDER_CE
-        InFile_OpenW(&archiveStream.file, filename.c_str()); // change it
-#else
-        InFile_Open(&archiveStream.file, filename.c_str());
-#endif
-        if (wres != 0)
+        Log("Could not extract file %d (error %d)", file_index, res);
+    }
+    else
+    {
+        Log("block_index=%d, out_buffer_size=%d, out_size_processed=%d, offset=%d", block_index, out_buffer_size, out_size_processed, offset);
+
+        buffer.resize(out_size_processed);
+        for (size_t i = 0; i < out_size_processed; i++)
         {
-            Log("cannot open input file", wres);
-            return buffer;
+            buffer[i] = out_buffer[i];
         }
     }
-
-    FileInStream_CreateVTable(&archiveStream);
-    archiveStream.wres = 0;
-    LookToRead2_CreateVTable(&lookStream, False);
-    lookStream.buf = NULL;
-
-    res = SZ_OK;
-
-    {
-        lookStream.buf = (Byte *)ISzAlloc_Alloc(&allocImp, kInputBufSize);
-        if (!lookStream.buf)
-        {
-            res = SZ_ERROR_MEM;
-            Log("Cannot allocate memory");
-        }
-        else
-        {
-            lookStream.bufSize = kInputBufSize;
-            lookStream.realStream = &archiveStream.vt;
-            LookToRead2_INIT(&lookStream)
-        }
-    }
-
-    CrcGenerateTable();
-
-    SzArEx_Init(&db);
-
-    if (res == SZ_OK)
-    {
-        res = SzArEx_Open(&db, &lookStream.vt, &allocImp, &allocTempImp);
-    }
-
-    if (res == SZ_OK)
-    {
-        UInt32 blockIndex = 0xFFFFFFFF; /* it can have any value before first call (if outBuffer = 0) */
-        Byte *outBuffer = 0; /* it must be 0 before first call for each new archive. */
-        size_t outBufferSize = 0;  /* it can have any value before first call (if outBuffer = 0) */
-        size_t offset = 0;
-        size_t outSizeProcessed = 0;
-
-        res = SzArEx_Extract(&db, &lookStream.vt, file_index, &blockIndex, &outBuffer, &outBufferSize, &offset, &outSizeProcessed, &allocImp, &allocTempImp);
-        if (res != SZ_OK)
-        {
-            Log("Could not extract file %d (error %d)", file_index, res);
-        }
-        else
-        {
-            Log("blockIndex=%d, outBufferSize=%d, outSizeProcessed=%d, offset=%d", blockIndex, outBufferSize, outSizeProcessed, offset);
-
-            buffer.resize(outSizeProcessed);
-            //buffer.assign(outBuffer, outBuffer+outBufferSize);
-
-            for (int i = 0; i < outSizeProcessed; i++)
-            {
-                buffer[i] = outBuffer[i];
-            }
-        }
-    }
-
-    SzArEx_Free(&db, &allocImp);
-    SzFree(NULL, temp);
-
-    File_Close(&archiveStream.file);
 
     return buffer;
+}
+
+n7z::Archive::~Archive()
+{
+    SzArEx_Free(&db, &allocImp);
+    File_Close(&archiveStream.file);
 }

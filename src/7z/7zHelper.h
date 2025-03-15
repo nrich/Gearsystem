@@ -25,8 +25,48 @@
 #include <vector>
 #include <cstdint>
 
+#include "Precomp.h"
+#include "7z.h"
+#include "7zAlloc.h"
+#include "7zBuf.h"
+#include "7zCrc.h"
+#include "7zFile.h"
+#include "7zVersion.h"
 
-std::list<std::string> List7zFile(const std::string &filename);
-std::vector<uint8_t> ExtractFrom7zFile(const std::string &filename, int file_index=0);
+namespace n7z
+{
+    struct FileEntry
+    {
+        std::string filepath;
+        uint64_t size;
+        size_t index;
+    };
+
+    class Archive
+    {
+        std::list<FileEntry> entries;
+
+        CFileInStream archiveStream;
+        CLookToRead2 lookStream;
+        CSzArEx db;
+
+        ISzAlloc allocImp;
+        ISzAlloc allocTempImp;
+    public:
+        Archive(const std::string &filename);
+        const std::list<FileEntry> list() const
+        {
+            return entries;
+        }
+
+        std::vector<uint8_t> extract(const size_t file_index);
+
+        ~Archive();
+    };
+
+}; // n7z 
+
+//std::list<std::string> List7zFile(const std::string &filename);
+//std::vector<uint8_t> ExtractFrom7zFile(const std::string &filename, int file_index=0);
 
 #endif	/* _7ZHELPER_H */

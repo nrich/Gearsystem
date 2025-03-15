@@ -379,25 +379,28 @@ bool Cartridge::LoadFromZipFile(const u8* buffer, int size)
 
 bool Cartridge::LoadFrom7zFile(const std::string &filename)
 {
-    auto file_list = List7zFile(filename);
-
-    int i = 0;
-    for (const auto &rom_filename : file_list)
+    try
     {
-        Log("Got %s", rom_filename.c_str());
+        auto archive = n7z::Archive(filename);
 
-        auto buffer = ExtractFrom7zFile(filename, i);
-
-        if (buffer.size())
+        for (const auto &rom : archive.list())
         {
+            Log("Got %s", rom.filepath.c_str());
 
-            bool ok = LoadFromBuffer((const u8*)buffer.data(), (int)buffer.size());
+            auto buffer = archive.extract(rom.index);
 
-            if (ok)
-                return true;
+            if (buffer.size())
+            {
+                bool ok = LoadFromBuffer((const u8*)buffer.data(), (int)buffer.size());
+
+                if (ok)
+                    return true;
+            }
         }
+    } 
+    catch (const std::exception &e) 
+    {
 
-        i++;
     }
 
     return false;
