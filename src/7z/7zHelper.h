@@ -66,7 +66,4 @@ namespace n7z
 
 }; // n7z 
 
-//std::list<std::string> List7zFile(const std::string &filename);
-//std::vector<uint8_t> ExtractFrom7zFile(const std::string &filename, int file_index=0);
-
 #endif	/* _7ZHELPER_H */
