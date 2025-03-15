@@ -10,6 +10,8 @@ CPPFLAGS += `$(SDLPATH)/bin/sdl2-config --cflags`
 CPPFLAGS += -I thirdparty/glew-2.2.0/include -DGLEW_STATIC
 SOURCES_C += thirdparty/glew-2.2.0/src/glew.c
 
+SOURCES_RC := assets/gearsystem.rc
+
 UNAME_S=MinGW
 
 include ../desktop-shared/Makefile.common
@@ -17,3 +19,4 @@ include ../desktop-shared/Makefile.install
 
 CC=x86_64-w64-mingw32-gcc
 CXX=x86_64-w64-mingw32-g++
+WINDRES=x86_64-w64-mingw32-windres

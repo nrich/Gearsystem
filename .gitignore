@@ -31,6 +31,7 @@ ipch/
 *.ilk
 *.log
 *.zip
+*.res
 *[Dd]ebug*/
 *.sbr
 *.app
