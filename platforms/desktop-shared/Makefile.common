@@ -15,7 +15,7 @@ export HEADER
 
 TARGET_NAME = gearsystem
 GIT_VERSION := $(shell git describe --abbrev=7 --dirty --always --tags)
-UNAME_S := $(shell uname -s)
+UNAME_S ?= $(shell uname -s)
 PLATFORM = "undefined"
 
 OBJECTS += $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o)
@@ -61,6 +61,9 @@ else ifeq ($(UNAME_S), Darwin)
     CPPFLAGS += `sdl2-config --cflags`
     CPPFLAGS += -I/opt/local/include
     TARGET := $(TARGET_NAME)
+else ifeq ($(UNAME_S), MinGW)
+    PLATFORM = "MinGW"
+    TARGET=$(TARGET_NAME).exe
 else
     PLATFORM = "Generic Unix-like/BSD"
     LDFLAGS += `sdl2-config --libs` -lSDL2

@@ -36,6 +36,8 @@
 #define GUI_IMPORT
 #include "gui.h"
 
+#include <ctime>
+
 static int main_menu_height;
 static bool dialog_in_use = false;
 static SDL_Scancode* configured_key;

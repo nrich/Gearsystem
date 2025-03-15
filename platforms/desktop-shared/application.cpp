@@ -140,7 +140,9 @@ void application_update_title(char* title)
 static int sdl_init(void)
 {
 #ifdef _WIN32
+#ifdef SDL_HINT_WINDOWS_DPI_SCALING
     SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
+#endif
 #endif
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
