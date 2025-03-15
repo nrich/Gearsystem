@@ -24,6 +24,8 @@
 #include "miniz/miniz.h"
 #include "log.h"
 
+#include "7z/7zHelper.h"
+
 Cartridge::Cartridge()
 {
     InitPointer(m_pROM);
@@ -374,6 +376,33 @@ bool Cartridge::LoadFromZipFile(const u8* buffer, int size)
     return false;
 }
 
+
+bool Cartridge::LoadFrom7zFile(const std::string &filename)
+{
+    auto file_list = List7zFile(filename);
+
+    int i = 0;
+    for (const auto &rom_filename : file_list)
+    {
+        Log("Got %s", rom_filename.c_str());
+
+        auto buffer = ExtractFrom7zFile(filename, i);
+
+        if (buffer.size())
+        {
+
+            bool ok = LoadFromBuffer((const u8*)buffer.data(), (int)buffer.size());
+
+            if (ok)
+                return true;
+        }
+
+        i++;
+    }
+
+    return false;
+}
+
 bool Cartridge::LoadFromFile(const char* path)
 {
     using namespace std;
@@ -384,47 +413,56 @@ bool Cartridge::LoadFromFile(const char* path)
 
     SetROMPath(path);
 
-    ifstream file(path, ios::in | ios::binary | ios::ate);
+    string fn(path);
+    transform(fn.begin(), fn.end(), fn.begin(), (int(*)(int)) tolower);
 
-    if (file.is_open())
+    string extension = fn.substr(fn.find_last_of(".") + 1);
+
+    if (extension == "7z")
     {
-        int size = static_cast<int> (file.tellg());
-        char* memblock = new char[size];
-        file.seekg(0, ios::beg);
-        file.read(memblock, size);
-        file.close();
-
-        string fn(path);
-        transform(fn.begin(), fn.end(), fn.begin(), (int(*)(int)) tolower);
-        string extension = fn.substr(fn.find_last_of(".") + 1);
-
-        if (extension == "zip")
-        {
-            Debug("Loading from ZIP...");
-            m_bReady = LoadFromZipFile(reinterpret_cast<u8*> (memblock), size);
-        }
-        else
-        {
-            m_bGameGear = (extension == "gg");
-            m_bSG1000= (extension == "sg" || extension == "mv");
-            m_bReady = LoadFromBuffer(reinterpret_cast<u8*> (memblock), size);
-        }
-
-        if (m_bReady)
-        {
-            Debug("ROM loaded", path);
-        }
-        else
-        {
-            Log("There was a problem loading the memory for file %s...", path);
-        }
-
-        SafeDeleteArray(memblock);
+        Debug("Loading from 7z...");
+        m_bReady = LoadFrom7zFile(string(path));
     }
     else
     {
-        Log("There was a problem loading the file %s...", path);
-        m_bReady = false;
+        ifstream file(path, ios::in | ios::binary | ios::ate);
+
+        if (file.is_open())
+        {
+            int size = static_cast<int> (file.tellg());
+            char* memblock = new char[size];
+            file.seekg(0, ios::beg);
+            file.read(memblock, size);
+            file.close();
+
+            if (extension == "zip")
+            {
+                Debug("Loading from ZIP...");
+                m_bReady = LoadFromZipFile(reinterpret_cast<u8*> (memblock), size);
+            }
+            else
+            {
+                m_bGameGear = (extension == "gg");
+                m_bSG1000= (extension == "sg" || extension == "mv");
+                m_bReady = LoadFromBuffer(reinterpret_cast<u8*> (memblock), size);
+            }
+
+            if (m_bReady)
+            {
+                Debug("ROM loaded", path);
+            }
+            else
+            {
+                Log("There was a problem loading the memory for file %s...", path);
+            }
+
+            SafeDeleteArray(memblock);
+        }
+        else
+        {
+            Log("There was a problem loading the file %s...", path);
+            m_bReady = false;
+        }
     }
 
     if (!m_bReady)

@@ -1,4 +1,5 @@
 include ../desktop-shared/Makefile.sources
+include ../desktop-shared/Makefile.source7z
 
 SDLPATH ?= /opt/local/x86_64-w64-mingw32
 

@@ -116,6 +116,7 @@ private:
     bool GatherMetadata(u32 crc);
     void GetInfoFromDB(u32 crc);
     bool LoadFromZipFile(const u8* buffer, int size);
+    bool LoadFrom7zFile(const std::string &filename);
     bool TestValidROM(u16 location);
     void SetROMPath(const char* path);
 

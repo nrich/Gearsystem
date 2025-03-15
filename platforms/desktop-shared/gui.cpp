@@ -1386,7 +1386,7 @@ static void main_window(void)
 static void file_dialog_open_rom(void)
 {
     nfdchar_t *outPath;
-    nfdfilteritem_t filterItem[5] = { { "ROM Files", "sms,gg,sg,mv,rom,bin,zip" }, { "Master System", "sms" }, { "Game Gear", "gg" }, { "SG-1000", "sg" }, { "Othello Multivision", "mv" } };
+    nfdfilteritem_t filterItem[5] = { { "ROM Files", "sms,gg,sg,mv,rom,bin,zip,7z" }, { "Master System", "sms" }, { "Game Gear", "gg" }, { "SG-1000", "sg" }, { "Othello Multivision", "mv" } };
     nfdopendialogu8args_t args = { };
     args.filterList = filterItem;
     args.filterCount = 5;
