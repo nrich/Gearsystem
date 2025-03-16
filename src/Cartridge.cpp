@@ -385,22 +385,28 @@ bool Cartridge::LoadFrom7zFile(const std::string &filename)
 
         for (const auto &rom : archive.list())
         {
-            Log("Got %s", rom.filepath.c_str());
+            std::string extension = std::string(rom.filepath.substr(rom.filepath.find_last_of(".") + 1).c_str());
+            transform(extension.begin(), extension.end(), extension.begin(), (int(*)(int)) tolower);
 
-            auto buffer = archive.extract(rom.index);
-
-            if (buffer.size())
+            if ((extension == "sms") || (extension == "gg") || (extension == "sg") || (extension == "mv"))
             {
-                bool ok = LoadFromBuffer((const u8*)buffer.data(), (int)buffer.size());
+                auto buffer = archive.extract(rom.index);
 
-                if (ok)
-                    return true;
+                if (buffer.size())
+                {
+                    bool ok = LoadFromBuffer((const u8*)buffer.data(), (int)buffer.size());
+
+                    if (ok)
+                        return true;
+
+                    Log("Failed to load %s", rom.filepath.c_str());
+                }
             }
         }
     } 
     catch (const std::exception &e) 
     {
-
+        Log("LoadFrom7zFile exception: %s", e.what());
     }
 
     return false;
