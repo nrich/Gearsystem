@@ -15,7 +15,7 @@ ifdef DEBUG
     LDFLAGS += -mconsole
 endif
 
-LDFLAGS += `$(SDL2PATH)/bin/sdl2-config --libs` -loleaut32 -luuid -lopengl32 -static-libgcc -static-libstdc++ -lole32
+LDFLAGS += `$(SDL2PATH)/bin/sdl2-config --static-libs` -lopengl32 -static-libgcc -static-libstdc++
 CPPFLAGS += `$(SDL2PATH)/bin/sdl2-config --cflags`
 
 CPPFLAGS += -I thirdparty/glew-2.2.0/include -DGLEW_STATIC
