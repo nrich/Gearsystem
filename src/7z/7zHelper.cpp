@@ -35,14 +35,10 @@
 
 #define kInputBufSize ((size_t)1 << 18)
 
-std::string utf16_to_utf8(std::u16string const& s)
+std::string utf16_to_utf8(const std::u16string &s)
 {
-    std::wstring_convert<std::codecvt_utf8_utf16<char16_t, 0x10ffff,
-        std::codecvt_mode::little_endian>, char16_t> cnv;
-    std::string utf8 = cnv.to_bytes(s);
-    if(cnv.converted() < s.size())
-        throw std::runtime_error("incomplete conversion");
-    return utf8;
+    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> conversion;
+    return conversion.to_bytes(s);
 }
 
 n7z::Archive::Archive(const std::string &filename)
