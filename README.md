@@ -93,6 +93,25 @@ cd platforms/mingw64
 make
 ```
 
+
+### MinGW (Linux cross compile)
+- Ubuntu / Debian
+- Install the build toolchain
+``` shell
+sudo apt install gcc-mingw-w64-x86-64  g++-mingw-w64-x86-64 make
+```
+- Install SDL2
+``` shell
+wget -O /tmp/SDL2-devel-2.32.0-mingw.tar.gz https://www.libsdl.org/release/SDL2-devel-2.30.12-mingw.tar.gz
+sudo mkdir -p /opt/local
+sudo tar xf /tmp/SDL2-devel-2.32.0-mingw.tar.gz -C /opt/local/ --wildcards '*/i686-w64-mingw32/*' '*/x86_64-w64-mingw32/*' --strip-components=1
+```
+- Build the executable
+``` shell
+cd platforms/mingw64
+make
+```
+
 ### macOS
 
 - Install Xcode and run `xcode-select --install` in the terminal for the compiler to be available on the command line.
