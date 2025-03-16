@@ -80,6 +80,19 @@ Don't hesitate to report bugs or ask for new features by [openning an issue](htt
 - Install Microsoft Visual Studio Community 2022 or later.
 - Open the Gearsystem Visual Studio solution `platforms/windows/Gearsystem.sln` and build.
 
+### MinGW
+
+- Download and run the installer from https://www.msys2.org/
+- Install the build dependencies from the shell
+``` shell
+pacman -S git mingw-w64-x86_64-toolchain mingw64/mingw-w64-x86_64-SDL2 make
+```
+- Build the executable
+``` shell
+cd platforms/mingw64
+make
+```
+
 ### macOS
 
 - Install Xcode and run `xcode-select --install` in the terminal for the compiler to be available on the command line.
