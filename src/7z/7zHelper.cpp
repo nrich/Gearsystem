@@ -130,14 +130,7 @@ n7z::Archive::Archive(const std::string &filename)
 
                 uint64_t file_size = SzArEx_GetFileSize(&db, i);
 
-                //std::string path = utf16_to_utf8(std::u16string(reinterpret_cast<char16_t*>(temp), len));
-                std::string path;
-                // TODO this will need looking at
-                for (size_t i = 0; i < len; i++)
-                {
-                    path.push_back((char)(temp[i] & 0xFF));
-                }
-
+                std::string path = utf16_to_utf8(std::u16string(reinterpret_cast<char16_t*>(temp), len));
                 entries.push_back(n7z::FileEntry{path, file_size, i});
             }
         }
